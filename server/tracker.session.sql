@@ -1,0 +1,11 @@
+-- CREATE TABLE pending_verifications (
+--     id SERIAL PRIMARY KEY,
+--     name TEXT NOT NULL,
+--     email TEXT NOT NULL UNIQUE,
+--     password_hash TEXT NOT NULL,
+--     verified BOOLEAN DEFAULT FALSE,
+--     token TEXT UNIQUE NOT NULL,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '10 minutes')
+-- );
+CREATE EXTENSION postgis;

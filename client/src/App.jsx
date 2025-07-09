@@ -14,6 +14,8 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  
+
   // Only run useEffect if not on the signup route
   useEffect(() => {
     // If the user is on the signup page, do not check token expiration

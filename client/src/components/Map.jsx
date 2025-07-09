@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, useMap, Marker, Popup, Polygon } from "react-leaflet";
 import { useMapContext } from "../contexts/MapContext";
 import "leaflet/dist/leaflet.css";
-
+import { io } from 'socket.io-client'
+import { useRef } from "react";
+import L from "leaflet";
 
 // Custom component to center map
 function CenterOnUserLocation() {
@@ -27,9 +29,6 @@ function CenterOnUserLocation() {
 
   return null;
 }
-
-// Exportable button component
-
 
 // Component to handle polygon drawing
 function PolygonDrawer() {
@@ -85,46 +84,63 @@ function PolygonDrawer() {
   );
 }
 
+// Live GPS Data Markers by animal_id
+function LiveDataMarkers() {
+  const [animals, setAnimals] = useState({});
+  const markerRefs = useRef({});
+
+  useEffect(() => {
+    const socket = io("http://localhost:5000");
+    socket.on("gps_data", (data) => {
+      setAnimals((prev) => ({
+        ...prev,
+        [data.animal_id]: { lat: data.lat, lon: data.lon, timestamp: data.timestamp },
+      }));
+    });
+    return () => socket.disconnect();
+  }, []);
+
+  // Animate marker movement
+  useEffect(() => {
+    Object.entries(animals).forEach(([id, data]) => {
+      const marker = markerRefs.current[id];
+      if (marker) {
+        const currentPos = marker.getLatLng();
+        const newPos = L.latLng(data.lat, data.lon);
+        if (!currentPos.equals(newPos)) {
+          marker.setLatLng(newPos, { animate: true });
+        }
+      }
+    });
+  }, [animals]);
+
+  return (
+    <>
+      {Object.entries(animals).map(([id, data]) => (
+        <Marker
+          key={id}
+          position={[data.lat, data.lon]}
+          ref={(ref) => {
+            if (ref) markerRefs.current[id] = ref;
+          }}
+        >
+          <Popup>
+            <b>Animal {id}</b><br />
+            Lat: {data.lat}<br />
+            Lon: {data.lon}<br />
+            At: {new Date(data.timestamp).toLocaleTimeString()}
+          </Popup>
+        </Marker>
+      ))}
+    </>
+  );
+}
+
 // Your main map component
 export default function Map() {
   const defaultPosition = [-15.3875, 28.3228]; // Lusaka coordinates
 
-  const markers = [
-    {
-      geocode: [-15.4067, 28.2871],
-      name: "Chilenje",
-    },
-    {
-      geocode: [-15.3875, 28.3228],
-      name: "Kalingalinga",
-    },
-    {
-      geocode: [-15.3300, 28.3300],
-      name: "Kabulonga",
-    },
-    {
-      geocode: [-15.4000, 28.3500],
-      name: "Libala",
-    },
-    {
-      geocode: [-15.4200, 28.3100],
-      name: "Makeni",
-    },
-    {
-      geocode: [-15.4100, 28.3400],
-      name: "Meanwood",
-    },
-    {
-      geocode: [-15.3950, 28.3000],
-      name: "Mtendere",
-    },
-    {
-      geocode: [-15.3800, 28.3600],
-      name: "Northmead",
-    },
-  ];
-
-  const {polygons} = useMapContext();
+  const { polygons } = useMapContext();
 
   return (
     <div className="h-full w-full relative">
@@ -135,20 +151,15 @@ export default function Map() {
         style={{ height: "100%", width: "100%" }}
       >
         <CenterOnUserLocation />
-        {
-          markers.map((marker, index) => (
-            <Marker position={marker.geocode} key={index}>
-              <Popup>{marker.name}</Popup>
-            </Marker>
-          ))
-        }
+        
         {/* Render saved polygons */}
         {polygons.map((polygon, idx) => (
           <Polygon key={idx} positions={polygon} pathOptions={{ color: "blue" }} />
         ))}
         {/* Polygon drawing controls */}
-        <PolygonDrawer
-        />
+        <PolygonDrawer />
+        {/* Live animal GPS markers */}
+        <LiveDataMarkers />
         <TileLayer
           className="relative"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

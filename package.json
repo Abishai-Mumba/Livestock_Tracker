@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "start:all": "concurrently -n MQTT,MQTT-NODE,BACKEND,FRONTEND -c yellow,cyan,green,magenta \"mosquitto -v\" \"cd server && npm run mqtt\" \"cd server && npm run serve\" \"cd client && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}
